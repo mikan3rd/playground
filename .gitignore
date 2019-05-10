@@ -1,5 +1,6 @@
 .vscode
 .mypy_cache
+.env
 secret.yaml
 .pytest_cache
 gcs-credentials.json
