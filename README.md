@@ -6,6 +6,7 @@
 - [ ] GCEにMySQLサーバーを立てる
 - [ ] GCEのMySQLサーバーに接続してmigrationができるようにする
 - [ ] SeleniumでHeadlessChromeを使えるようにする
+- [ ] Djangoのクリーンアーキテクチャーを考える
 
 
 # ライブラリ管理

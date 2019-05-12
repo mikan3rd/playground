@@ -9,6 +9,9 @@ verify_ssl = true
 django = "==2.1.8"
 pymysql = "*"
 pip = "==19.0.3"
+djangorestframework = "*"
+django-filter = "*"
+isort = "*"
 
 [requires]
 python_version = "3.6"
