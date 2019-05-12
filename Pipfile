@@ -12,6 +12,7 @@ pip = "==19.0.3"
 djangorestframework = "*"
 django-filter = "*"
 isort = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3.6"
