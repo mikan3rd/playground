@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "59e04a3e5057dc18f8551e185bdeef5d53aafb0addd8444a3ab3d42bef784356"
+            "sha256": "1e21b644fc993269777580ce3337ae4c462eebd2f62b2130842e055b26e672a3"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -77,6 +77,13 @@
             "index": "pypi",
             "version": "==4.3.21"
         },
+        "oauthlib": {
+            "hashes": [
+                "sha256:40a63637707e9163eda62d0f5345120c65e001a790480b8256448543c1f78f66",
+                "sha256:b4d99ae8ccfb7d33ba9591b59355c64eef5241534aa3da2e4c0435346b84bc8e"
+            ],
+            "version": "==3.0.2"
+        },
         "pyjwt": {
             "hashes": [
                 "sha256:5c6eca3c2940464d106b99ba83b00c6add741c9becaec087fb7ccdefea71350e",
@@ -115,6 +122,14 @@
             ],
             "index": "pypi",
             "version": "==2.22.0"
+        },
+        "requests-oauthlib": {
+            "hashes": [
+                "sha256:bd6533330e8748e94bf0b214775fed487d309b8b8fe823dc45641ebcd9a32f57",
+                "sha256:d3ed0c8f2e3bbc6b344fa63d6f933745ab394469da38db16bdddb461c7e25140"
+            ],
+            "index": "pypi",
+            "version": "==1.2.0"
         },
         "selenium": {
             "hashes": [

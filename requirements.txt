@@ -7,10 +7,12 @@ djangorestframework==3.10.1
 gunicorn==19.9.0
 idna==2.8
 isort==4.3.21
+oauthlib==3.0.2
 pyjwt==1.7.1
 pymysql==0.9.3
 python-dateutil==2.8.0
 pytz==2019.1
+requests-oauthlib==1.2.0
 requests==2.22.0
 selenium==3.141.0
 six==1.12.0
