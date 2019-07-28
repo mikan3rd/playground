@@ -17,6 +17,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^slack_lunch/', include('slack_lunch.urls')),
+    url(r"^admin/", admin.site.urls),
+    url(r"^slack_lunch/", include("slack_lunch.urls")),
+    url(r"^commitly/", include("commitly.urls")),
 ]
