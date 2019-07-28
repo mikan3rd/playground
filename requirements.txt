@@ -1,9 +1,15 @@
 -i https://pypi.org/simple
+certifi==2019.3.9
+chardet==3.0.4
 django-filter==2.1.0
 django==2.1.8
 djangorestframework==3.9.4
 gunicorn==19.9.0
-isort==4.3.18
+idna==2.8
+isort==4.3.20
 pymysql==0.9.3
 pytz==2019.1
+requests==2.22.0
+selenium==3.141.0
+urllib3==1.25.3
 pip==19.0.3

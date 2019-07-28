@@ -13,6 +13,9 @@ djangorestframework = "*"
 django-filter = "*"
 isort = "*"
 gunicorn = "*"
+requests = "*"
+selenium = "*"
+pyjwt = "*"
 
 [requires]
 python_version = "3.6"
