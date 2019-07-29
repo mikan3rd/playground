@@ -18,6 +18,12 @@ TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_TOKEN_SECRET = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
 
 
+def get_user_from_github(username: str):
+    url = f"{github_base_url}/users/{username}"
+    response = requests.get(url).json()
+    return response
+
+
 def get_commit_lines_from_github(username: str):
     url = f"{github_base_url}/users/{username}/events"
     response = requests.get(url).json()
@@ -68,8 +74,11 @@ def aggrigate_commit_lines(commit_result):
     no_extension = commit_result.pop("no_extension", 0)
     main_list = []
     sub_list = []
+    total = 0
 
     for key, value in commit_result.items():
+        total += value
+
         language = extentions.get(key)
         stat = {"language": language, "extention": key, "lines": value}
 
@@ -85,13 +94,38 @@ def aggrigate_commit_lines(commit_result):
     if no_extension > 0:
         sub_list.append({"language": None, "extention": None, "lines": value})
 
-    result = {"main_list": main_list, "sub_list": sub_list}
+    result = {"main_list": main_list, "sub_list": sub_list, "total": total}
     return result
 
 
-def tweet_commit():
+def tweet_commit(github_user, aggrigate_result):
+    now = (datetime.now(tz) - relativedelta(days=1)).strftime("%Y年%-m月%-d日(%a)")
+
+    content_list = [
+        now,
+        f"{github_user['login']} さんは{aggrigate_result['total']}行のコードを書きました!",
+        "",
+    ]
+
+    for d in aggrigate_result["main_list"]:
+        content_list.append(f"{d['language']}: {d['lines']}")
+
+    for d in aggrigate_result["sub_list"]:
+        if not d["extention"]:
+            content_list.append(f"その他: {d['lines']}")
+            continue
+
+        content_list.append(f"{d['extention']}: {d['lines']}")
+
+    content_list += ["", f"[GitHub] {github_user['html_url']}", "", "#commitly"]
+
+    status = "\n".join(content_list)
+
+    print("---statsu---")
+    print(status)
+
     twitter_api = TwitterApiClient(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
-    response = twitter_api.get_account()
+    response = twitter_api.post_tweet(status)
     pprint(response)
 
 
