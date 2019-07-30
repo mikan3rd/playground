@@ -6,6 +6,7 @@ from pprint import pprint
 import dateutil.parser
 import pytz
 import requests
+from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
 
 from helpers.twitter_api import TwitterApiClient
@@ -22,6 +23,30 @@ def get_user_from_github(username: str):
     url = f"{github_base_url}/users/{username}"
     response = requests.get(url).json()
     return response
+
+
+def get_contribution_from_github(username: str):
+    url = f"https://github.com/users/{username}/contributions"
+    response = requests.get(url)
+
+    soup = BeautifulSoup(response.content, "lxml")
+    rect_list = soup.find_all("rect")
+
+    contributions = {}
+    for rect in rect_list:
+        date = rect.get("data-date")
+        count = rect.get("data-count")
+        color = rect.get("fill")
+        if not date or count is None:
+            continue
+        contributions[date] = {
+            "count": count,
+            "color": color,
+            "level": contribute_colors.get(color),
+        }
+
+    pprint(contributions)
+    return contributions
 
 
 def get_commit_lines_from_github(username: str):
@@ -98,7 +123,7 @@ def aggrigate_commit_lines(commit_result):
     return result
 
 
-def tweet_commit(github_user, aggrigate_result):
+def tweet_commit(github_user, github_contribution, aggrigate_result):
     now = (datetime.now(tz) - relativedelta(days=1)).strftime("%Y年%-m月%-d日(%a)")
 
     content_list = [
@@ -128,6 +153,14 @@ def tweet_commit(github_user, aggrigate_result):
     response = twitter_api.post_tweet(status)
     pprint(response)
 
+
+contribute_colors = {
+    "#ebedf0": 1,
+    "#c6e48b": 2,
+    "#7bc96f": 3,
+    "#239a3b": 4,
+    "#196127": 5,
+}
 
 extentions = {
     ".py": "Python",
