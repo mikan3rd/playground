@@ -18,6 +18,8 @@ selenium = "*"
 pyjwt = "*"
 python-dateutil = "*"
 requests-oauthlib = "*"
+beautifulsoup4 = "*"
+lxml = "*"
 
 [requires]
 python_version = "3.7"
