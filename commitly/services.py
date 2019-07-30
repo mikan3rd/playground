@@ -1,17 +1,13 @@
 import os
 import re
-from datetime import datetime
 from pprint import pprint
 
 import dateutil.parser
-import pytz
 import requests
 from bs4 import BeautifulSoup
-from dateutil.relativedelta import relativedelta
 
 from helpers.twitter_api import TwitterApiClient
 
-tz = pytz.timezone("Asia/Tokyo")
 github_base_url = "https://api.github.com"
 
 
@@ -48,13 +44,13 @@ def get_contribution_from_github(username: str):
     return contributions
 
 
-def get_commit_lines_from_github(username: str):
+def get_commit_lines_from_github(username: str, start_time, end_time):
+    # TODO: ページング対応
+
     url = f"{github_base_url}/users/{username}/events"
     response = requests.get(url).json()
 
     result = {"no_extension": 0}
-    now = datetime.now(tz)
-    print(now)
 
     for event in response:
 
@@ -62,8 +58,9 @@ def get_commit_lines_from_github(username: str):
             continue
 
         created_at = dateutil.parser.parse(event["created_at"])
+        print(created_at)
 
-        if now - relativedelta(days=1) > created_at:
+        if not start_time < created_at < end_time:
             continue
 
         for commit in event["payload"]["commits"]:
@@ -122,16 +119,14 @@ def aggrigate_commit_lines(commit_result):
     return result
 
 
-def tweet_commit(github_user, github_contribution, aggrigate_result):
-    now = datetime.now(tz) - relativedelta(days=1)
-
-    contribution = github_contribution.get(now.strftime("%Y-%m-%-d"))
+def tweet_commit(github_user, github_contribution, aggrigate_result, target_time):
+    contribution = github_contribution.get(target_time.strftime("%Y-%m-%-d"))
 
     if aggrigate_result["total"] == 0 and contribution["count"] == 0:
         print("No Commit...")
         return
 
-    content_list = [now.strftime("%Y年%-m月%-d日(%a)")]
+    content_list = [target_time.strftime("%Y年%-m月%-d日(%a)")]
 
     if aggrigate_result["total"] > 0:
         content_list += [
