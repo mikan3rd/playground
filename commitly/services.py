@@ -48,7 +48,7 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
     # TODO: ページング対応
 
     url = f"{github_base_url}/users/{username}/events"
-    response = requests.get(url).json()
+    response = requests.get(url, params={"per_page": 100}).json()
 
     result = {"no_extension": 0}
 

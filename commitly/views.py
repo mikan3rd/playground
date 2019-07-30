@@ -31,7 +31,7 @@ class Tweet(APIView):
         aggrigate_result = services.aggrigate_commit_lines(commit_result)
 
         services.tweet_commit(
-            github_user, github_contribution, aggrigate_result, target_time
+            github_user, github_contribution, aggrigate_result, start_time
         )
 
         return JsonResponse(aggrigate_result)
