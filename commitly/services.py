@@ -45,7 +45,6 @@ def get_contribution_from_github(username: str):
             "level": contribute_colors.get(color),
         }
 
-    pprint(contributions)
     return contributions
 
 
@@ -124,23 +123,34 @@ def aggrigate_commit_lines(commit_result):
 
 
 def tweet_commit(github_user, github_contribution, aggrigate_result):
-    now = (datetime.now(tz) - relativedelta(days=1)).strftime("%Y年%-m月%-d日(%a)")
+    now = datetime.now(tz) - relativedelta(days=1)
 
-    content_list = [
-        now,
-        f"{github_user['login']} さんは{aggrigate_result['total']}行のコードを書きました!",
-        "",
-    ]
+    contribution = github_contribution.get(now.strftime("%Y-%m-%-d"))
 
-    for d in aggrigate_result["main_list"]:
-        content_list.append(f"{d['language']}: {d['lines']}")
+    if aggrigate_result["total"] == 0 and contribution["count"] == 0:
+        print("No Commit...")
+        return
 
-    for d in aggrigate_result["sub_list"]:
-        if not d["extention"]:
-            content_list.append(f"その他: {d['lines']}")
-            continue
+    content_list = [now.strftime("%Y年%-m月%-d日(%a)")]
 
-        content_list.append(f"{d['extention']}: {d['lines']}")
+    if aggrigate_result["total"] > 0:
+        content_list += [
+            f"{github_user['login']} さんは{aggrigate_result['total']}行のコードを書きました!",
+            "",
+        ]
+
+        for d in aggrigate_result["main_list"]:
+            content_list.append(f"{d['language']}: {d['lines']}")
+
+        for d in aggrigate_result["sub_list"]:
+            if not d["extention"]:
+                content_list.append(f"その他: {d['lines']}")
+                continue
+
+            content_list.append(f"{d['extention']}: {d['lines']}")
+
+    if contribution:
+        content_list += ["", f"contribution: {contribution['count']}"]
 
     content_list += ["", f"[GitHub] {github_user['html_url']}", "", "#commitly"]
 
