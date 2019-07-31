@@ -13,11 +13,14 @@ github_base_url = "https://api.github.com"
 
 TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_TOKEN_SECRET = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
+GITHUB_USER_ACCESS_TOKEN = os.environ.get("GITHUB_USER_ACCESS_TOKEN")
 
 
-def get_user_from_github(username: str):
-    url = f"{github_base_url}/users/{username}"
-    response = requests.get(url).json()
+def get_user_from_github():
+    url = f"{github_base_url}/user"
+    response = requests.get(
+        url, headers={"Authorization": f"token {GITHUB_USER_ACCESS_TOKEN}"}
+    ).json()
     return response
 
 
