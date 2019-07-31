@@ -58,7 +58,9 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
             continue
 
         created_at = dateutil.parser.parse(event["created_at"])
-        print(created_at)
+
+        if created_at < start_time:
+            break
 
         if not start_time < created_at < end_time:
             continue
@@ -156,7 +158,8 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
 
     twitter_api = TwitterApiClient(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
     response = twitter_api.post_tweet(status)
-    pprint(response)
+    if response.get("errors"):
+        pprint(response)
 
 
 contribute_colors = {
