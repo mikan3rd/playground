@@ -8,20 +8,25 @@ from bs4 import BeautifulSoup
 
 from helpers.twitter_api import TwitterApiClient
 
-github_base_url = "https://api.github.com"
-
 
 TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_TOKEN_SECRET = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
+GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
 GITHUB_USER_ACCESS_TOKEN = os.environ.get("GITHUB_USER_ACCESS_TOKEN")
+
+github_base_url = "https://api.github.com"
+base_params = {"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET}
 
 
 def get_user_from_github():
     url = f"{github_base_url}/user"
     response = requests.get(
         url, headers={"Authorization": f"token {GITHUB_USER_ACCESS_TOKEN}"}
-    ).json()
-    return response
+    )
+    print(response.status_code)
+    result = response.json()
+    return result
 
 
 def get_contribution_from_github(username: str):
@@ -51,11 +56,15 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
     # TODO: ページング対応
 
     url = f"{github_base_url}/users/{username}/events"
-    response = requests.get(url, params={"per_page": 100}).json()
+    params = {"per_page": 100}
+    params.update(base_params)
+
+    response = requests.get(url, params=params)
+    events = response.json()
 
     result = {"no_extension": 0}
 
-    for event in response:
+    for event in events:
 
         if not event["type"] == "PushEvent":
             continue
@@ -74,12 +83,15 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
                 continue
 
             print(event["created_at"], event["repo"]["name"])
-            response = requests.get(commit["url"]).json()
+            response = requests.get(commit["url"], params=params)
+            print(response.headers.get("X-RateLimit-Remaining"))
+            commit_detail = response.json()
+            files = commit_detail.get("files")
 
-            if not response.get("files"):
+            if not files:
                 pprint(response)
 
-            for file_ in response.get("files", []):
+            for file_ in files:
                 search_result = re.search(r"\.\w+$", file_["filename"])
                 changes = file_["changes"]
 
@@ -125,9 +137,12 @@ def aggrigate_commit_lines(commit_result):
 
 
 def tweet_commit(github_user, github_contribution, aggrigate_result, target_time):
-    contribution = github_contribution.get(target_time.strftime("%Y-%m-%-d"))
+    contribution_time = target_time.strftime("%Y-%m-%d")
+    contribution = github_contribution.get(contribution_time)
+    print(contribution_time, contribution)
+    has_contributin = contribution and contribution["count"] == 0
 
-    if aggrigate_result["total"] == 0 and contribution["count"] == 0:
+    if aggrigate_result["total"] == 0 and not has_contributin:
         print("No Commit...")
         return
 
@@ -149,7 +164,7 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
 
             content_list.append(f"{d['extention']}: {d['lines']}")
 
-    if contribution:
+    if has_contributin:
         content_list += ["", f"contribution: {contribution['count']}"]
 
     content_list += ["", f"[GitHub] {github_user['html_url']}", "", "#commitly"]
