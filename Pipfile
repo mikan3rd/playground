@@ -20,6 +20,7 @@ python-dateutil = "*"
 requests-oauthlib = "*"
 beautifulsoup4 = "*"
 lxml = "*"
+cryptography = "*"
 
 [requires]
 python_version = "3.7"

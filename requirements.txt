@@ -1,7 +1,10 @@
 -i https://pypi.org/simple
+asn1crypto==0.24.0
 beautifulsoup4==4.8.0
 certifi==2019.6.16
+cffi==1.12.3
 chardet==3.0.4
+cryptography==2.7
 django-filter==2.2.0
 django==2.1.8
 djangorestframework==3.10.2
@@ -10,10 +13,11 @@ idna==2.8
 isort==4.3.21
 lxml==4.4.0
 oauthlib==3.0.2
+pycparser==2.19
 pyjwt==1.7.1
 pymysql==0.9.3
 python-dateutil==2.8.0
-pytz==2019.1
+pytz==2019.2
 requests-oauthlib==1.2.0
 requests==2.22.0
 selenium==3.141.0
