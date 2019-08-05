@@ -84,7 +84,6 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
 
             print(event["created_at"], event["repo"]["name"])
             response = requests.get(commit["url"], params=params)
-            print(response.headers.get("X-RateLimit-Remaining"))
             commit_detail = response.json()
             files = commit_detail.get("files")
 
