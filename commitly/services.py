@@ -139,7 +139,7 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
     contribution_time = target_time.strftime("%Y-%m-%d")
     contribution = github_contribution.get(contribution_time)
     print(contribution_time, contribution)
-    has_contributin = contribution and contribution["count"] == 0
+    has_contributin = contribution and contribution["count"] > 0
 
     if aggrigate_result["total"] == 0 and not has_contributin:
         print("No Commit...")
@@ -191,8 +191,8 @@ extentions = {
     ".py": "Python",
     ".js": "JavaScript",
     ".ts": "TypeScript",
-    ".tsx": "React",
     ".jsx": "React",
+    ".tsx": "React + TypeScript",
     ".rb": "Ruby",
     ".html": "HTML",
     ".css": "CSS",
