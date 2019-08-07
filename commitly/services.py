@@ -44,7 +44,7 @@ def get_contribution_from_github(username: str):
         if not date or count is None:
             continue
         contributions[date] = {
-            "count": count,
+            "count": int(count),
             "color": color,
             "level": contribute_colors.get(color),
         }
@@ -139,9 +139,9 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
     contribution_time = target_time.strftime("%Y-%m-%d")
     contribution = github_contribution.get(contribution_time)
     print(contribution_time, contribution)
-    has_contributin = contribution and contribution["count"] > 0
+    has_contribution = contribution and contribution["count"] > 0
 
-    if aggrigate_result["total"] == 0 and not has_contributin:
+    if aggrigate_result["total"] == 0 and not has_contribution:
         print("No Commit...")
         return
 
@@ -163,7 +163,7 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
 
             content_list.append(f"{d['extention']}: {d['lines']}")
 
-    if has_contributin:
+    if has_contribution:
         content_list += ["", f"contribution: {contribution['count']}"]
 
     content_list += ["", f"[GitHub] {github_user['html_url']}", "", "#commitly"]
