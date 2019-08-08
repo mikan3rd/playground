@@ -160,7 +160,7 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
         for d in aggrigate_result["main_list"]:
             content_list.append(f"{d['language']}: {d['lines']}")
 
-        if aggrigate_result["main_list"] > 0 and aggrigate_result["sub_list"] > 0:
+        if aggrigate_result["main_list"] and aggrigate_result["sub_list"]:
             content_list.append("")
 
         for d in aggrigate_result["sub_list"]:
