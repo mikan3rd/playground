@@ -149,11 +149,15 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
         print("No Commit...")
         return
 
+    twitter_api = TwitterApiClient(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+    response = twitter_api.get_account()
+    screen_name = response["screen_name"]
+
     content_list = [target_time.strftime("%Y年%-m月%-d日(%a)")]
 
     if aggrigate_result["total"] > 0:
         content_list += [
-            f"{github_user['login']} さんは{aggrigate_result['total']}行のコードを書きました!",
+            f"@{screen_name} さんは{aggrigate_result['total']}行のコードを書きました!",
             "",
         ]
 
@@ -180,7 +184,6 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
     print("---statsu---")
     print(status)
 
-    twitter_api = TwitterApiClient(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
     response = twitter_api.post_tweet(status)
     if response.get("errors"):
         pprint(response)
