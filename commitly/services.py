@@ -224,5 +224,6 @@ extentions = {
     ".r": "R",
     ".rs": "Rust",
     ".scala": "Scala",
+    ".json": "JSON",
     "others": "その他",
 }
