@@ -21,6 +21,7 @@ requests-oauthlib = "*"
 beautifulsoup4 = "*"
 lxml = "*"
 cryptography = "*"
+google-auth = "*"
 
 [requires]
 python_version = "3.7"

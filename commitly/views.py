@@ -10,7 +10,6 @@ from . import services
 
 class Tweet(APIView):
     def get(self, request, format=None):
-
         utc_time = datetime.now(timezone("UTC"))
         target_time = utc_time - relativedelta(days=1)
         start_time = target_time.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -21,19 +20,27 @@ class Tweet(APIView):
         print("start_time: ", start_time)
         print("end_time:   ", end_time)
 
-        github_user = services.get_user_from_github()
-        username = github_user["login"]
-        print("username:", username)
+        authed_session = services.get_authed_session()
+        users = services.get_users(authed_session)
 
-        github_contribution = services.get_contribution_from_github(username)
+        for commitly_user in users:
+            github_user = services.get_user_from_github(commitly_user)
+            username = github_user["login"]
+            print("username:", username)
 
-        commit_result = services.get_commit_lines_from_github(
-            username, start_time, end_time
-        )
-        aggrigate_result = services.aggrigate_commit_lines(commit_result)
+            github_contribution = services.get_contribution_from_github(username)
 
-        services.tweet_commit(
-            github_user, github_contribution, aggrigate_result, start_time
-        )
+            commit_result = services.get_commit_lines_from_github(
+                username, start_time, end_time
+            )
+            aggrigate_result = services.aggrigate_commit_lines(commit_result)
+
+            services.tweet_commit(
+                commitly_user,
+                github_user,
+                github_contribution,
+                aggrigate_result,
+                start_time,
+            )
 
         return JsonResponse(aggrigate_result)

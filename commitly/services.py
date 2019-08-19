@@ -5,24 +5,25 @@ from pprint import pprint
 import dateutil.parser
 import requests
 from bs4 import BeautifulSoup
+from google.oauth2 import service_account
+from google.auth.transport.requests import AuthorizedSession
+
 
 from helpers.twitter_api import TwitterApiClient
 
 
-TWITTER_ACCESS_TOKEN = os.environ.get("TWITTER_ACCESS_TOKEN")
-TWITTER_ACCESS_TOKEN_SECRET = os.environ.get("TWITTER_ACCESS_TOKEN_SECRET")
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
-GITHUB_USER_ACCESS_TOKEN = os.environ.get("GITHUB_USER_ACCESS_TOKEN")
 
 github_base_url = "https://api.github.com"
 base_params = {"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET}
 
 
-def get_user_from_github():
+def get_user_from_github(commitly_user):
+
     url = f"{github_base_url}/user"
     response = requests.get(
-        url, headers={"Authorization": f"token {GITHUB_USER_ACCESS_TOKEN}"}
+        url, headers={"Authorization": f"token {commitly_user['github_access_token']}"}
     )
     print(response.status_code)
     result = response.json()
@@ -139,7 +140,9 @@ def aggrigate_commit_lines(commit_result):
     return result
 
 
-def tweet_commit(github_user, github_contribution, aggrigate_result, target_time):
+def tweet_commit(
+    commitly_user, github_user, github_contribution, aggrigate_result, target_time
+):
     contribution_time = target_time.strftime("%Y-%m-%d")
     contribution = github_contribution.get(contribution_time)
     print(contribution_time, contribution)
@@ -149,7 +152,10 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
         print("No Commit...")
         return
 
-    twitter_api = TwitterApiClient(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+    twitter_api = TwitterApiClient(
+        commitly_user["twitter_access_token"],
+        commitly_user["twitter_access_token_secret"],
+    )
     response = twitter_api.get_account()
     screen_name = response["screen_name"]
 
@@ -187,6 +193,22 @@ def tweet_commit(github_user, github_contribution, aggrigate_result, target_time
     response = twitter_api.post_tweet(status)
     if response.get("errors"):
         pprint(response)
+
+
+def get_authed_session():
+    credentials = service_account.Credentials.from_service_account_file(
+        "service_account.json",
+        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+    )
+    authed_session = AuthorizedSession(credentials)
+    return authed_session
+
+
+def get_users(authed_session):
+    url = "https://asia-northeast1-commitly-27919.cloudfunctions.net/getUsers"
+    response = authed_session.get(url)
+    result = response.json()
+    return result["users"]
 
 
 contribute_colors = {
