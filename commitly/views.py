@@ -20,8 +20,7 @@ class Tweet(APIView):
         print("start_time: ", start_time)
         print("end_time:   ", end_time)
 
-        authed_session = services.get_authed_session()
-        users = services.get_users(authed_session)
+        users = services.get_users()
 
         for commitly_user in users:
             github_user = services.get_user_from_github(commitly_user)

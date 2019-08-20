@@ -195,17 +195,17 @@ def tweet_commit(
         pprint(response)
 
 
-def get_authed_session():
-    credentials = service_account.Credentials.from_service_account_file(
-        "service_account.json",
-        scopes=["https://www.googleapis.com/auth/cloud-platform"],
+def get_id_token_session(target_audience: str):
+    credentials = service_account.IDTokenCredentials.from_service_account_file(
+        "service_account.json", target_audience=target_audience
     )
     authed_session = AuthorizedSession(credentials)
     return authed_session
 
 
-def get_users(authed_session):
+def get_users():
     url = "https://asia-northeast1-commitly-27919.cloudfunctions.net/getUsers"
+    authed_session = get_id_token_session(url)
     response = authed_session.get(url)
     result = response.json()
     return result["users"]
