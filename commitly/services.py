@@ -1,22 +1,40 @@
 import os
 import re
+from datetime import datetime
 from pprint import pprint
 
 import dateutil.parser
 import requests
 from bs4 import BeautifulSoup
-from google.oauth2 import service_account
+from dateutil.relativedelta import relativedelta
 from google.auth.transport.requests import AuthorizedSession
-
+from google.oauth2 import service_account
+from pytz import timezone
 
 from helpers.twitter_api import TwitterApiClient
-
 
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
 
 github_base_url = "https://api.github.com"
 base_params = {"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET}
+
+
+def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_time):
+    github_user = get_user_from_github(commitly_user)
+    username = github_user["login"]
+    print("username:", username)
+
+    github_contribution = get_contribution_from_github(username)
+
+    commit_result = get_commit_lines_from_github(username, start_time, end_time)
+    aggrigate_result = aggrigate_commit_lines(commit_result)
+
+    return
+
+    tweet_commit(
+        commitly_user, github_user, github_contribution, aggrigate_result, start_time
+    )
 
 
 def get_user_from_github(commitly_user):
@@ -193,6 +211,20 @@ def tweet_commit(
     response = twitter_api.post_tweet(status)
     if response.get("errors"):
         pprint(response)
+
+
+def get_time():
+    utc_time = datetime.now(timezone("UTC"))
+    target_time = utc_time - relativedelta(days=1)
+    start_time = target_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_time = utc_time.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    print("utc_time:   ", utc_time)
+    print("target_time:", target_time)
+    print("start_time: ", start_time)
+    print("end_time:   ", end_time)
+
+    return utc_time, target_time, start_time, end_time
 
 
 def get_id_token_session(target_audience: str):
