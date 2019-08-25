@@ -3,4 +3,9 @@ from rest_framework.urlpatterns import format_suffix_patterns
 
 from . import views
 
-urlpatterns = format_suffix_patterns([path("tweet", views.Tweet.as_view())])
+urlpatterns = format_suffix_patterns(
+    [
+        path("tweet", views.Tweet.as_view()),
+        path("github_webhook", views.GitHubWebhook.as_view()),
+    ]
+)

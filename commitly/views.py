@@ -1,4 +1,4 @@
-from django.http.response import JsonResponse
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from . import services
@@ -14,4 +14,10 @@ class Tweet(APIView):
                 commitly_user, utc_time, target_time, start_time, end_time
             )
 
-        return JsonResponse({"result": "SUCCESS!!"})
+        return Response({"result": "SUCCESS!!"})
+
+
+class GitHubWebhook(APIView):
+    def post(self, request, format=None):
+        print(request.data)
+        return Response(request.data)
