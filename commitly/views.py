@@ -34,9 +34,20 @@ class GitHubWebhook(APIView):
         if not payload.get("commits"):
             return Response("SKIP")
 
-        result = services.get_commit_lines(payload)
-        return Response(result)
+        commit_lines = services.get_commit_lines(payload)
 
-        # services.upload_blob(result)
+        if not commit_lines:
+            return Response("No Change")
 
-        # return Response(result)
+        blob_name = f"github/{event_type}/{event_id}.json"
+        data = {
+            "id": event_id,
+            "user_id": payload["sender"]["id"],
+            "commit_lines": [
+                {"extension": k, "num": v} for k, v in commit_lines.items()
+            ],
+        }
+
+        services.upload_blob(blob_name, data)
+
+        return Response(data)

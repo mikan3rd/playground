@@ -137,7 +137,7 @@ def get_commit_lines(payload):
     params = {}
     params.update(base_params)
 
-    result = {"no_extension": 0}
+    result = {}
 
     for commit in payload["commits"]:
 
@@ -163,7 +163,13 @@ def get_commit_lines(payload):
             search_result = re.search(r"\.\w+$", file_["filename"])
 
             if not search_result:
-                result["no_extension"] += changes
+
+                if not result.get("no_extension"):
+                    result["no_extension"] = changes
+
+                else:
+                    result["no_extension"] += changes
+
                 continue
 
             extension = search_result.group()
@@ -175,15 +181,11 @@ def get_commit_lines(payload):
     return result
 
 
-def upload_blob(data):
+def upload_blob(blob_name, data):
     storage_client = storage.Client.from_service_account_json("service_account.json")
     bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
-    destination_blob_name = f"test_{data['id']}"
-    blob = bucket.blob(destination_blob_name)
+    blob = bucket.blob(blob_name)
     blob.upload_from_string(json.dumps(data), content_type="application/json")
-
-    print(f"File uploaded to {destination_blob_name}")
-    return data
 
 
 def aggrigate_commit_lines(commit_result):
