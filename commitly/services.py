@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from datetime import datetime
@@ -8,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
 from google.auth.transport.requests import AuthorizedSession
+from google.cloud import storage
 from google.oauth2 import service_account
 from pytz import timezone
 
@@ -126,6 +128,62 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
                 result[extension] += changes
 
     return result
+
+
+def get_commit_lines(payload):
+    owner = payload["repository"]["owner"]["name"]
+    repo = payload["repository"]["name"]
+
+    params = {}
+    params.update(base_params)
+
+    result = {"no_extension": 0}
+
+    for commit in payload["commits"]:
+
+        if not commit["distinct"]:
+            continue
+
+        url = f"{github_base_url}/repos/{owner}/{repo}/commits/{commit['id']}"
+        print(url)
+        response = requests.get(url, params=params)
+        print("X-RateLimit-Remaining:", response.headers.get("X-RateLimit-Remaining"))
+        commit_detail = response.json()
+        files = commit_detail.get("files")
+
+        if not files:
+            pprint(response)
+
+        for file_ in files:
+            changes = file_["changes"]
+
+            if changes == 0:
+                continue
+
+            search_result = re.search(r"\.\w+$", file_["filename"])
+
+            if not search_result:
+                result["no_extension"] += changes
+                continue
+
+            extension = search_result.group()
+            if not result.get(extension):
+                result[extension] = 0
+
+            result[extension] += changes
+
+    return result
+
+
+def upload_blob(data):
+    storage_client = storage.Client.from_service_account_json("service_account.json")
+    bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
+    destination_blob_name = f"test_{data['id']}"
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_string(json.dumps(data), content_type="application/json")
+
+    print(f"File uploaded to {destination_blob_name}")
+    return data
 
 
 def aggrigate_commit_lines(commit_result):

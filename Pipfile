@@ -22,6 +22,7 @@ beautifulsoup4 = "*"
 lxml = "*"
 cryptography = "*"
 google-auth = "*"
+google-cloud-storage = "*"
 
 [requires]
 python_version = "3.7"
