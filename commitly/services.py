@@ -30,8 +30,6 @@ def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_ti
     commit_result = get_commit_lines_from_github(username, start_time, end_time)
     aggrigate_result = aggrigate_commit_lines(commit_result)
 
-    return
-
     tweet_commit(
         commitly_user, github_user, github_contribution, aggrigate_result, start_time
     )
