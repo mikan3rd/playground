@@ -9,7 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
 from google.auth.transport.requests import AuthorizedSession
-from google.cloud import storage
+from google.cloud import bigquery, storage
 from google.oauth2 import service_account
 from pytz import timezone
 
@@ -29,7 +29,7 @@ def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_ti
 
     github_contribution = get_contribution_from_github(username)
 
-    commit_result = get_commit_lines_from_github(username, start_time, end_time)
+    commit_result = get_commit_from_bigquery(commitly_user["github_user_id"], start_time, end_time)
     aggrigate_result = aggrigate_commit_lines(commit_result)
 
     tweet_commit(
@@ -186,6 +186,58 @@ def upload_blob(blob_name, data):
     bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
     blob = bucket.blob(blob_name)
     blob.upload_from_string(json.dumps(data), content_type="application/json")
+
+
+def add_data_to_bigquery():
+    # TODO: load_table_from_json がリリースされたら移行
+
+    client = bigquery.Client.from_service_account_json("service_account.json")
+    dataset_id = "github_push"
+    table_name = "staging"
+
+    dataset_ref = client.dataset(dataset_id)
+    job_config = bigquery.LoadJobConfig()
+    job_config.autodetect = True
+    job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
+    uri = "gs://staging.commitly-27919.appspot.com/github/push/*.json"
+    load_job = client.load_table_from_uri(
+        uri, dataset_ref.table(table_name), job_config=job_config
+    )
+    print(f"Starting job: {load_job.job_id}")
+
+    load_job.result()
+    print("Job finished")
+
+    destination_table = client.get_table(dataset_ref.table(table_name))
+    print(f"Loaded {destination_table.num_rows} rows")
+
+
+def get_commit_from_bigquery(user_id, start_time, end_time):
+    client = bigquery.Client.from_service_account_json("service_account.json")
+
+    query = f"""
+SELECT commit_lines
+FROM `commitly-27919.github_push.staging`
+where (
+user_id = {user_id} and
+updated_at BETWEEN TIMESTAMP("{start_time.strftime("%Y-%m-%d")}") AND TIMESTAMP("{end_time.strftime("%Y-%m-%d")}")
+)
+"""
+
+    query_job = client.query(query)
+
+    result = {}
+    for row in query_job:
+        commit_lines = row.commit_lines
+
+        for commit in commit_lines:
+            extension = commit["extension"]
+            if not result.get(extension):
+                result[extension] = 0
+
+            result[extension] += commit["num"]
+
+    return result
 
 
 def aggrigate_commit_lines(commit_result):

@@ -34,6 +34,7 @@ class GitHubWebhook(APIView):
         if not payload.get("commits"):
             return Response("SKIP")
 
+        utc_time, target_time, start_time, end_time = services.get_time()
         commit_lines = services.get_commit_lines(payload)
 
         if not commit_lines:
@@ -46,8 +47,15 @@ class GitHubWebhook(APIView):
             "commit_lines": [
                 {"extension": k, "num": v} for k, v in commit_lines.items()
             ],
+            "updated_at": utc_time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
         services.upload_blob(blob_name, data)
 
         return Response(data)
+
+
+class GitHubPushJob(APIView):
+    def get(self, request, format=None):
+        # services.add_data_to_bigquery()
+        return Response()
