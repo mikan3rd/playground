@@ -29,7 +29,9 @@ def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_ti
 
     github_contribution = get_contribution_from_github(username)
 
-    commit_result = get_commit_from_bigquery(commitly_user["github_user_id"], start_time, end_time)
+    commit_result = get_commit_from_bigquery(
+        commitly_user["github_user_id"], start_time, end_time
+    )
     aggrigate_result = aggrigate_commit_lines(commit_result)
 
     tweet_commit(
@@ -38,7 +40,6 @@ def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_ti
 
 
 def get_user_from_github(commitly_user):
-
     url = f"{github_base_url}/user"
     response = requests.get(
         url, headers={"Authorization": f"token {commitly_user['github_access_token']}"}
@@ -145,7 +146,6 @@ def get_commit_lines(payload):
             continue
 
         url = f"{github_base_url}/repos/{owner}/{repo}/commits/{commit['id']}"
-        print(url)
         response = requests.get(url, params=params)
         print("X-RateLimit-Remaining:", response.headers.get("X-RateLimit-Remaining"))
         commit_detail = response.json()
@@ -186,6 +186,13 @@ def upload_blob(blob_name, data):
     bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
     blob = bucket.blob(blob_name)
     blob.upload_from_string(json.dumps(data), content_type="application/json")
+
+
+def delete_blob():
+    storage_client = storage.Client.from_service_account_json("service_account.json")
+    bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
+    blobs = list(bucket.list_blobs(prefix="github/push/"))
+    bucket.delete_blobs(blobs)
 
 
 def add_data_to_bigquery():

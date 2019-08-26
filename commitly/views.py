@@ -48,6 +48,8 @@ class GitHubWebhook(APIView):
                 {"extension": k, "num": v} for k, v in commit_lines.items()
             ],
             "updated_at": utc_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "repository": payload["repository"]["full_name"],
+            "private": payload["repository"]["private"],
         }
 
         services.upload_blob(blob_name, data)
@@ -57,5 +59,6 @@ class GitHubWebhook(APIView):
 
 class GitHubPushJob(APIView):
     def get(self, request, format=None):
-        # services.add_data_to_bigquery()
-        return Response()
+        services.add_data_to_bigquery()
+        services.delete_blob()
+        return Response("SUCCESS")
