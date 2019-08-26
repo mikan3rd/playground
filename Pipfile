@@ -23,6 +23,9 @@ lxml = "*"
 cryptography = "*"
 google-auth = "*"
 google-cloud-storage = "*"
+google-cloud-bigquery = "*"
+pandas = "*"
+pyarrow = "*"
 
 [requires]
 python_version = "3.7"
