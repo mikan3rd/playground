@@ -223,26 +223,25 @@ def get_commit_from_bigquery(user_id, start_time, end_time):
     client = bigquery.Client.from_service_account_json("service_account.json")
 
     query = f"""
-SELECT commit_lines
-FROM `commitly-27919.github_push.staging`
+SELECT sum(cl.num) as total, cl.extension, TIMESTAMP_TRUNC(update_at, DAY) as date
+FROM `commitly-27919.github_push.staging`, unnest(commit_lines) as cl
 where (
 user_id = {user_id} and
-updated_at BETWEEN TIMESTAMP("{start_time.strftime("%Y-%m-%d")}") AND TIMESTAMP("{end_time.strftime("%Y-%m-%d")}")
+update_at BETWEEN TIMESTAMP("{start_time.strftime("%Y-%m-%d")}") AND TIMESTAMP("{end_time.strftime("%Y-%m-%d")}")
 )
+group by cl.extension, date
 """
 
     query_job = client.query(query)
 
     result = {}
     for row in query_job:
-        commit_lines = row.commit_lines
 
-        for commit in commit_lines:
-            extension = commit["extension"]
-            if not result.get(extension):
-                result[extension] = 0
+        extension = row.extension
+        if not result.get(extension):
+            result[extension] = 0
 
-            result[extension] += commit["num"]
+        result[extension] += row.total
 
     return result
 
