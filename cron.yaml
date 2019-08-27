@@ -3,3 +3,8 @@ cron:
     url: /commitly/tweet
     schedule: every day 19:00
     timezone: Asia/Tokyo
+
+  - description: 'daily commitly bigquery job'
+    url: /commitly/github_push_job
+    schedule: every day 9:00
+    timezone: Asia/Tokyo

@@ -12,3 +12,7 @@
 # ライブラリ管理
 - GAEがPipfileに対応していないのでrequirements.txtに書き出す
 - `pipenv lock -r > requirements.txt`
+
+# デプロイ
+- `gcloud app deploy`
+- `gcloud app deploy cron.yaml`
