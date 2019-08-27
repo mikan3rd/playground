@@ -19,3 +19,4 @@ node_modules
 !.gitkeep
 !.gitignore
 service_account.json
+github_app.pem

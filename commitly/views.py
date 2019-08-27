@@ -11,9 +11,14 @@ class Tweet(APIView):
         users = services.get_users()
 
         for commitly_user in users:
-            services.aggrigate_and_tweet(
-                commitly_user, utc_time, target_time, start_time, end_time
-            )
+            try:
+                services.aggrigate_and_tweet(
+                    commitly_user, utc_time, target_time, start_time, end_time
+                )
+
+            except Exception as e:
+                print("ERROR:", e)
+                continue
 
         return Response({"result": "SUCCESS!!"})
 
@@ -35,7 +40,12 @@ class GitHubWebhook(APIView):
             return Response("SKIP")
 
         utc_time, target_time, start_time, end_time = services.get_time()
-        commit_lines = services.get_commit_lines(payload)
+
+        owner = payload["repository"]["owner"]["name"]
+        repo = payload["repository"]["name"]
+        access_token = services.get_github_installation_access_token(owner, repo)
+
+        commit_lines = services.get_commit_lines(payload, access_token)
 
         if not commit_lines:
             return Response("No Change")

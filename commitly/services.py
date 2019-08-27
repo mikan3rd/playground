@@ -3,8 +3,10 @@ import os
 import re
 from datetime import datetime
 from pprint import pprint
+from time import time
 
 import dateutil.parser
+import jwt
 import requests
 from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
@@ -131,12 +133,39 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
     return result
 
 
-def get_commit_lines(payload):
+def get_github_installation_access_token(owner, repo):
+    app_id = "25466"
+
+    with open("github_app.pem", "r") as f:
+        private_key = f.read()
+
+    now = int(time())
+    payload = {"iat": now, "exp": now + (10 * 60), "iss": app_id}
+    token = jwt.encode(payload, private_key, algorithm="RS256").decode("utf-8")
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.machine-man-preview+json",
+    }
+
+    url = f"{github_base_url}/repos/{owner}/{repo}/installation"
+    response = requests.get(url, headers=headers).json()
+
+    url = response["access_tokens_url"]
+    response = requests.post(url, headers=headers).json()
+    access_token = response["token"]
+
+    return access_token
+
+
+def get_commit_lines(payload, access_token):
     owner = payload["repository"]["owner"]["name"]
     repo = payload["repository"]["name"]
 
-    params = {}
-    params.update(base_params)
+    headers = {
+        "Authorization": f"token {access_token}",
+        "Accept": "application/vnd.github.machine-man-preview+json",
+    }
 
     result = {}
 
@@ -146,7 +175,7 @@ def get_commit_lines(payload):
             continue
 
         url = f"{github_base_url}/repos/{owner}/{repo}/commits/{commit['id']}"
-        response = requests.get(url, params=params)
+        response = requests.get(url, headers=headers)
         print("X-RateLimit-Remaining:", response.headers.get("X-RateLimit-Remaining"))
         commit_detail = response.json()
         files = commit_detail.get("files")
