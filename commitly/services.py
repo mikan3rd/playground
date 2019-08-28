@@ -25,7 +25,7 @@ base_params = {"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SEC
 
 
 def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_time):
-    github_user = get_user_from_github(commitly_user)
+    github_user = get_user_from_github(commitly_user["github_access_token"])
     username = github_user["login"]
     print("username:", username)
 
@@ -41,14 +41,57 @@ def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_ti
     )
 
 
-def get_user_from_github(commitly_user):
+def get_user_from_github(access_token):
     url = f"{github_base_url}/user"
-    response = requests.get(
-        url, headers={"Authorization": f"token {commitly_user['github_access_token']}"}
-    )
-    print(response.status_code)
+    response = requests.get(url, headers={"Authorization": f"token {access_token}"})
     result = response.json()
     return result
+
+
+def get_github_installation(github_user, token, user_access_token):
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.machine-man-preview+json",
+    }
+
+    url = f"{github_base_url}/users/{github_user['login']}/installation"
+    response = requests.get(url, headers=headers).json()
+    access_token_url = response.get("access_tokens_url")
+    installation_id = response.get("id")
+
+    if not access_token_url:
+        return None
+
+    response = requests.post(access_token_url, headers=headers).json()
+    access_token = response["token"]
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.github.machine-man-preview+json",
+    }
+
+    url = f"{github_base_url}/installation/repositories"
+    response = requests.get(url, headers=headers).json()
+    installation_repositories = response["repositories"]
+
+    headers = {
+        "Authorization": f"Bearer {user_access_token}",
+        "Accept": "application/vnd.github.machine-man-preview+json",
+    }
+    url = f"{github_base_url}/user/installations/{installation_id}/repositories"
+    response = requests.get(url, headers=headers).json()
+    all_repositories = response["repositories"]
+
+    # TODO: organizationも取得したい
+    # url = f"{github_base_url}/user/orgs"
+    # print(url)
+    # response = requests.get(url, headers=headers).json()
+    # pprint(response)
+
+    return {
+        "all_repositories": len(all_repositories),
+        "installation_repositories": len(installation_repositories),
+    }
 
 
 def get_contribution_from_github(username: str):
@@ -133,7 +176,7 @@ def get_commit_lines_from_github(username: str, start_time, end_time):
     return result
 
 
-def get_github_installation_access_token(owner, repo):
+def get_github_app_jwt():
     app_id = "25466"
 
     with open("github_app.pem", "r") as f:
@@ -142,7 +185,10 @@ def get_github_installation_access_token(owner, repo):
     now = int(time())
     payload = {"iat": now, "exp": now + (10 * 60), "iss": app_id}
     token = jwt.encode(payload, private_key, algorithm="RS256").decode("utf-8")
+    return token
 
+
+def get_github_installation_access_token(owner, repo, token):
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.machine-man-preview+json",
@@ -424,5 +470,7 @@ extentions = {
     ".rs": "Rust",
     ".scala": "Scala",
     ".json": "JSON",
+    ".md": "Markdown",
+    ".yaml": "YAML",
     "others": "その他",
 }

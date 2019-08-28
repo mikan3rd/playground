@@ -41,9 +41,11 @@ class GitHubWebhook(APIView):
 
         utc_time, target_time, start_time, end_time = services.get_time()
 
+        token = services.get_github_app_jwt()
+
         owner = payload["repository"]["owner"]["name"]
         repo = payload["repository"]["name"]
-        access_token = services.get_github_installation_access_token(owner, repo)
+        access_token = services.get_github_installation_access_token(owner, repo, token)
 
         commit_lines = services.get_commit_lines(payload, access_token)
 
@@ -72,3 +74,16 @@ class GitHubPushJob(APIView):
         services.add_data_to_bigquery()
         services.delete_blob()
         return Response("SUCCESS")
+
+
+class GitHubInstallation(APIView):
+    def get(self, request, format=None):
+        user_access_token = request.query_params.get("github_access_token")
+        if not user_access_token:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        github_user = services.get_user_from_github(user_access_token)
+        token = services.get_github_app_jwt()
+        result = services.get_github_installation(github_user, token, user_access_token)
+
+        return Response(result)
