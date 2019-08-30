@@ -1,35 +1,26 @@
 import json
-import os
 import re
 from datetime import datetime
 from pprint import pprint
-from time import time
 
-import dateutil.parser
-import jwt
-import requests
-from bs4 import BeautifulSoup
 from dateutil.relativedelta import relativedelta
 from google.auth.transport.requests import AuthorizedSession
 from google.cloud import bigquery, storage
 from google.oauth2 import service_account
 from pytz import timezone
 
+from helpers.github_api import GitHubApiClient
 from helpers.twitter_api import TwitterApiClient
-
-GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
-
-github_base_url = "https://api.github.com"
-base_params = {"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET}
 
 
 def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_time):
-    github_user = get_user_from_github(commitly_user["github_access_token"])
+    github_api = GitHubApiClient(commitly_user["github_access_token"])
+
+    github_user = github_api.get_user()
     username = github_user["login"]
     print("username:", username)
 
-    github_contribution = get_contribution_from_github(username)
+    github_contribution = github_api.get_contribution_from_github(username)
 
     commit_result = get_commit_from_bigquery(
         commitly_user["github_user_id"], start_time, end_time
@@ -41,177 +32,63 @@ def aggrigate_and_tweet(commitly_user, utc_time, target_time, start_time, end_ti
     )
 
 
-def get_user_from_github(access_token):
-    url = f"{github_base_url}/user"
-    response = requests.get(url, headers={"Authorization": f"token {access_token}"})
-    result = response.json()
-    return result
+def get_github_installation(user_token):
+    github_api = GitHubApiClient(user_token)
+
+    github_user = github_api.get_user()
+    username = github_user["login"]
+
+    github_api.get_app_token()
+
+    result = []
+    if github_api.get_user_installation_token(username):
+        data = github_api.get_installation_repositories()
+        result.append({"name": username, "repositories": data["repositories"]})
+
+    organizations = github_api.get_user_organizations()
+    for org in organizations:
+        org_name = org["login"]
+        if github_api.get_organization_installation_token(org_name):
+            data = github_api.get_installation_repositories()
+            result.append({"name": org_name, "repositories": data["repositories"]})
+
+    return {"result": result}
 
 
-def get_github_installation(github_user, token, user_access_token):
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github.machine-man-preview+json",
+def add_commit_data(event_id, event_type, payload):
+    utc_time, target_time, start_time, end_time = get_time()
+
+    result = get_commit_lines(payload)
+
+    if isinstance(result, str):
+        return result
+
+    if not result:
+        return "No Change"
+
+    blob_name = f"github/{event_type}/{event_id}.json"
+    data = {
+        "id": event_id,
+        "user_id": payload["sender"]["id"],
+        "commit_lines": [{"extension": k, "num": v} for k, v in result.items()],
+        "updated_at": utc_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "repository": payload["repository"]["full_name"],
+        "private": payload["repository"]["private"],
     }
 
-    url = f"{github_base_url}/users/{github_user['login']}/installation"
-    response = requests.get(url, headers=headers).json()
-    access_token_url = response.get("access_tokens_url")
-    installation_id = response.get("id")
-
-    if not access_token_url:
-        return None
-
-    response = requests.post(access_token_url, headers=headers).json()
-    access_token = response["token"]
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/vnd.github.machine-man-preview+json",
-    }
-
-    url = f"{github_base_url}/installation/repositories"
-    response = requests.get(url, headers=headers).json()
-    installation_repositories = response["repositories"]
-
-    headers = {
-        "Authorization": f"Bearer {user_access_token}",
-        "Accept": "application/vnd.github.machine-man-preview+json",
-    }
-    url = f"{github_base_url}/user/installations/{installation_id}/repositories"
-    response = requests.get(url, headers=headers).json()
-    all_repositories = response["repositories"]
-
-    # TODO: organizationも取得したい
-    # url = f"{github_base_url}/user/orgs"
-    # print(url)
-    # response = requests.get(url, headers=headers).json()
-    # pprint(response)
-
-    return {
-        "all_repositories": len(all_repositories),
-        "installation_repositories": len(installation_repositories),
-    }
+    upload_blob(blob_name, data)
+    return data
 
 
-def get_contribution_from_github(username: str):
-    url = f"https://github.com/users/{username}/contributions"
-    response = requests.get(url)
+def get_commit_lines(payload):
+    github_api = GitHubApiClient()
+    github_api.get_app_token()
 
-    soup = BeautifulSoup(response.content, "lxml")
-    rect_list = soup.find_all("rect")
-
-    contributions = {}
-    for rect in rect_list:
-        date = rect.get("data-date")
-        count = rect.get("data-count")
-        color = rect.get("fill")
-        if not date or count is None:
-            continue
-        contributions[date] = {
-            "count": int(count),
-            "color": color,
-            "level": contribute_colors.get(color),
-        }
-
-    return contributions
-
-
-def get_commit_lines_from_github(username: str, start_time, end_time):
-    # TODO: ページング対応
-
-    url = f"{github_base_url}/users/{username}/events"
-    params = {"per_page": 100}
-    params.update(base_params)
-
-    response = requests.get(url, params=params)
-    events = response.json()
-
-    result = {"no_extension": 0}
-
-    for event in events:
-
-        if not event["type"] == "PushEvent":
-            continue
-
-        created_at = dateutil.parser.parse(event["created_at"])
-
-        if created_at < start_time:
-            break
-
-        if not start_time < created_at < end_time:
-            continue
-
-        for commit in event["payload"]["commits"]:
-
-            if not commit["distinct"]:
-                continue
-
-            print(event["created_at"], event["repo"]["name"])
-            response = requests.get(commit["url"], params=params)
-            commit_detail = response.json()
-            files = commit_detail.get("files")
-
-            if not files:
-                pprint(response)
-
-            for file_ in files:
-                changes = file_["changes"]
-
-                if changes == 0:
-                    continue
-
-                search_result = re.search(r"\.\w+$", file_["filename"])
-
-                if not search_result:
-                    result["no_extension"] += changes
-                    continue
-
-                extension = search_result.group()
-                if not result.get(extension):
-                    result[extension] = 0
-
-                result[extension] += changes
-
-    return result
-
-
-def get_github_app_jwt():
-    app_id = "25466"
-
-    with open("github_app.pem", "r") as f:
-        private_key = f.read()
-
-    now = int(time())
-    payload = {"iat": now, "exp": now + (10 * 60), "iss": app_id}
-    token = jwt.encode(payload, private_key, algorithm="RS256").decode("utf-8")
-    return token
-
-
-def get_github_installation_access_token(owner, repo, token):
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github.machine-man-preview+json",
-    }
-
-    url = f"{github_base_url}/repos/{owner}/{repo}/installation"
-    response = requests.get(url, headers=headers).json()
-
-    url = response["access_tokens_url"]
-    response = requests.post(url, headers=headers).json()
-    access_token = response["token"]
-
-    return access_token
-
-
-def get_commit_lines(payload, access_token):
     owner = payload["repository"]["owner"]["name"]
     repo = payload["repository"]["name"]
 
-    headers = {
-        "Authorization": f"token {access_token}",
-        "Accept": "application/vnd.github.machine-man-preview+json",
-    }
+    if not github_api.get_repository_installation_token(owner, repo):
+        return "Faild to get installation token"
 
     result = {}
 
@@ -220,14 +97,11 @@ def get_commit_lines(payload, access_token):
         if not commit["distinct"]:
             continue
 
-        url = f"{github_base_url}/repos/{owner}/{repo}/commits/{commit['id']}"
-        response = requests.get(url, headers=headers)
-        print("X-RateLimit-Remaining:", response.headers.get("X-RateLimit-Remaining"))
-        commit_detail = response.json()
+        commit_detail = github_api.get_commit_detail(owner, repo, commit["id"])
         files = commit_detail.get("files")
 
         if not files:
-            pprint(response)
+            pprint(commit_detail)
 
         for file_ in files:
             changes = file_["changes"]
@@ -433,14 +307,6 @@ def get_users():
     result = response.json()
     return result["users"]
 
-
-contribute_colors = {
-    "#ebedf0": 1,
-    "#c6e48b": 2,
-    "#7bc96f": 3,
-    "#239a3b": 4,
-    "#196127": 5,
-}
 
 extentions = {
     ".py": "Python",

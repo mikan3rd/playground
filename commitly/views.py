@@ -39,34 +39,8 @@ class GitHubWebhook(APIView):
         if not payload.get("commits"):
             return Response("SKIP")
 
-        utc_time, target_time, start_time, end_time = services.get_time()
-
-        token = services.get_github_app_jwt()
-
-        owner = payload["repository"]["owner"]["name"]
-        repo = payload["repository"]["name"]
-        access_token = services.get_github_installation_access_token(owner, repo, token)
-
-        commit_lines = services.get_commit_lines(payload, access_token)
-
-        if not commit_lines:
-            return Response("No Change")
-
-        blob_name = f"github/{event_type}/{event_id}.json"
-        data = {
-            "id": event_id,
-            "user_id": payload["sender"]["id"],
-            "commit_lines": [
-                {"extension": k, "num": v} for k, v in commit_lines.items()
-            ],
-            "updated_at": utc_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "repository": payload["repository"]["full_name"],
-            "private": payload["repository"]["private"],
-        }
-
-        services.upload_blob(blob_name, data)
-
-        return Response(data)
+        result = services.add_commit_data(event_id, event_type, payload)
+        return Response(result)
 
 
 class GitHubPushJob(APIView):
@@ -82,8 +56,5 @@ class GitHubInstallation(APIView):
         if not user_access_token:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        github_user = services.get_user_from_github(user_access_token)
-        token = services.get_github_app_jwt()
-        result = services.get_github_installation(github_user, token, user_access_token)
-
+        result = services.get_github_installation(user_access_token)
         return Response(result)
