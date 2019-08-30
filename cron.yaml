@@ -3,8 +3,14 @@ cron:
     url: /commitly/tweet
     schedule: every day 19:00
     timezone: Asia/Tokyo
+    retry_parameters:
+      min_backoff_seconds: 2.5
+      max_doublings: 5
 
   - description: 'daily commitly bigquery job'
     url: /commitly/github_push_job
     schedule: every day 9:00
     timezone: Asia/Tokyo
+    retry_parameters:
+      min_backoff_seconds: 2.5
+      max_doublings: 5
