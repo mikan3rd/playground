@@ -135,6 +135,7 @@ def upload_blob(blob_name, data):
     bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
     blob = bucket.blob(blob_name)
     blob.upload_from_string(json.dumps(data), content_type="application/json")
+    print("FINISH: upload_blob")
 
 
 def delete_blob():
@@ -142,6 +143,7 @@ def delete_blob():
     bucket = storage_client.get_bucket("staging.commitly-27919.appspot.com")
     blobs = list(bucket.list_blobs(prefix="github/push/"))
     bucket.delete_blobs(blobs)
+    print("FINISH: delete_blob")
 
 
 def add_data_to_bigquery():
