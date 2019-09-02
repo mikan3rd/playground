@@ -43,14 +43,24 @@ def get_github_installation(user_token):
     result = []
     if github_api.get_user_installation_token(username):
         data = github_api.get_installation_repositories()
-        result.append({"name": username, "repositories": data["repositories"]})
+        result.append(
+            {
+                "name": username,
+                "repositories": get_repository_info(data["repositories"]),
+            }
+        )
 
     organizations = github_api.get_user_organizations()
     for org in organizations:
         org_name = org["login"]
         if github_api.get_organization_installation_token(org_name):
             data = github_api.get_installation_repositories()
-            result.append({"name": org_name, "repositories": data["repositories"]})
+            result.append(
+                {
+                    "name": org_name,
+                    "repositories": get_repository_info(data["repositories"]),
+                }
+            )
 
     return {"result": result}
 
@@ -78,6 +88,21 @@ def add_commit_data(event_id, event_type, payload):
 
     upload_blob(blob_name, data)
     return data
+
+
+def get_repository_info(repositories):
+    return [
+        {
+            "id": repository["id"],
+            "name": repository["name"],
+            "owner_id": repository["owner"]["id"],
+            "owner_name": repository["owner"]["login"],
+            "owner_type": repository["owner"]["type"],
+            "private": repository["private"],
+            "language": repository["language"],
+        }
+        for repository in repositories
+    ]
 
 
 def get_commit_lines(payload):
