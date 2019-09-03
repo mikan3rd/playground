@@ -9,5 +9,6 @@ urlpatterns = format_suffix_patterns(
         path("github_webhook", views.GitHubWebhook.as_view()),
         path("github_push_job", views.GitHubPushJob.as_view()),
         path("github_installation", views.GitHubInstallation.as_view()),
+        path("github_recent_commit", views.GitHubUserCommit.as_view()),
     ]
 )

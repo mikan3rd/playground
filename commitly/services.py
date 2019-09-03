@@ -65,6 +65,16 @@ def get_github_installation(user_token):
     return {"result": result}
 
 
+def get_github_user_commit(user_token):
+    github_api = GitHubApiClient(user_token)
+
+    github_user = github_api.get_user()
+    user_id = github_user["id"]
+
+    result = get_recent_user_commit(user_id)
+    return result
+
+
 def add_commit_data(event_id, event_type, payload):
     utc_time, target_time, start_time, end_time = get_time()
 
@@ -218,6 +228,45 @@ group by cl.extension, date
             result[extension] = 0
 
         result[extension] += row.total
+
+    return result
+
+
+def get_recent_user_commit(user_id):
+    client = bigquery.Client.from_service_account_json("service_account.json")
+
+    query = f"""
+SELECT sum(cl.num) as total, cl.extension, TIMESTAMP_TRUNC(updated_at, DAY) as date
+FROM `commitly-27919.github_push.staging`, unnest(commit_lines) as cl
+where user_id = {user_id}
+group by cl.extension, date
+LIMIT 200
+"""
+
+    query_job = client.query(query)
+
+    date_format = "%Y/%m/%d"
+
+    tmp_result = {}
+    for row in query_job:
+
+        date = row.date.strftime(date_format)
+        if not tmp_result.get(date):
+            tmp_result[date] = {}
+
+        extension = row.extension
+        if not tmp_result[date].get(extension):
+            tmp_result[date][extension] = 0
+
+        tmp_result[date][extension] += row.total
+
+    result = []
+    for date, values in tmp_result.items():
+        result.append({"date": date, "extensitons": aggrigate_commit_lines(values)})
+
+    result = sorted(
+        result, key=lambda k: datetime.strptime(k["date"], date_format), reverse=True
+    )
 
     return result
 

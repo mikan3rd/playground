@@ -58,3 +58,13 @@ class GitHubInstallation(APIView):
 
         result = services.get_github_installation(user_access_token)
         return Response(result)
+
+
+class GitHubUserCommit(APIView):
+    def get(self, request, format=None):
+        user_access_token = request.query_params.get("github_access_token")
+        if not user_access_token:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        result = services.get_github_user_commit(user_access_token)
+        return Response(result)
